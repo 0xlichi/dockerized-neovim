@@ -7,7 +7,7 @@ ARG GID=1000
 RUN pacman -Syu --noconfirm --needed \
   neovim vim lolcat lazygit git curl nodejs npm wget make cmake gcc openssh \
   lua luarocks luajit starship zoxide fzf diffutils which yazi trash-cli \
-  less bat man locate sudo \
+  less bat man locate sudo tree \
   && pacman -Scc --noconfirm
 
 # Create group and user matching host UID/GID
