@@ -1,4 +1,4 @@
-FROM archlinux:base-20250101.0.295446
+FROM archlinux
 
 ARG USERNAME=apple
 ARG UID=1000
