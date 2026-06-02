@@ -1,0 +1,358 @@
+return {
+  "neovim/nvim-lspconfig",
+  event = { "BufReadPre", "BufNewFile" },
+
+  dependencies = {
+    { "williamboman/mason.nvim", config = true },
+    "williamboman/mason-lspconfig.nvim",
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
+    "hrsh7th/cmp-nvim-lsp",
+    {
+      "j-hui/fidget.nvim",
+      opts = { notification = { window = { winblend = 0 } } },
+    },
+  },
+
+  config = function()
+    local lsp = vim.lsp
+    local api = vim.api
+    local tb = require("telescope.builtin")
+
+    -- ─── Diagnostic UI ───────────────────────────────────────────
+    vim.diagnostic.config({
+      underline = true,
+      update_in_insert = false,
+      severity_sort = true,
+      signs = {
+        text = {
+          [vim.diagnostic.severity.ERROR] = " ",
+          [vim.diagnostic.severity.WARN] = " ",
+          [vim.diagnostic.severity.HINT] = " ",
+          [vim.diagnostic.severity.INFO] = " ",
+        },
+      },
+      virtual_text = {
+        spacing = 4,
+        source = "if_many",
+        prefix = "●",
+      },
+      float = {
+        border = "rounded",
+        source = true,
+        header = "",
+        prefix = "",
+      },
+    })
+
+    -- ─── Augroups (must be defined BEFORE use) ───────────────────
+    local attach_group = api.nvim_create_augroup("LspAttach", { clear = true })
+    local highlight_group = api.nvim_create_augroup("LspHighlight", { clear = true })
+    local format_group = api.nvim_create_augroup("LspFormat", { clear = true })
+    local hint_group = api.nvim_create_augroup("LspInlayHints", { clear = true })
+
+    -- ─── On Attach ───────────────────────────────────────────────
+    api.nvim_create_autocmd("LspAttach", {
+      group = attach_group,
+      callback = function(event)
+        local buf = event.buf
+        local client = lsp.get_client_by_id(event.data.client_id)
+        local methods = lsp.protocol.Methods
+
+        local map = function(keys, fn, desc, mode)
+          vim.keymap.set(mode or "n", keys, fn, { buffer = buf, desc = "LSP: " .. desc })
+        end
+
+        -- ── Navigation ──────────────────────────────────────────
+        map("gd", tb.lsp_definitions, "Goto Definition")
+        map("gD", lsp.buf.declaration, "Goto Declaration")
+        map("gr", tb.lsp_references, "Goto References")
+        map("gI", tb.lsp_implementations, "Goto Implementation")
+        map("gy", tb.lsp_type_definitions, "Goto Type Definition")
+
+        -- ── Symbols ─────────────────────────────────────────────
+        map("<leader>ds", tb.lsp_document_symbols, "Document Symbols")
+        map("<leader>ws", tb.lsp_dynamic_workspace_symbols, "Workspace Symbols")
+
+        -- ── Actions ─────────────────────────────────────────────
+        map("<leader>rn", lsp.buf.rename, "Rename Symbol")
+        map("<leader>ca", lsp.buf.code_action, "Code Action")
+        map("<leader>ca", lsp.buf.code_action, "Code Action", "v")
+        map("<leader>cf", function()
+          lsp.buf.format({
+            bufnr = buf,
+            filter = function(c)
+              return c.name == "null-ls"
+            end,
+          })
+        end, "Format Buffer")
+
+        -- ── Hover & Signature (modern API with border) ───────────
+        map("K", function()
+          lsp.buf.hover({ border = "rounded", max_width = 80 })
+        end, "Hover Documentation")
+        map("gK", function()
+          lsp.buf.signature_help({ border = "rounded", max_width = 80 })
+        end, "Signature Help")
+        map("<C-k>", function()
+          lsp.buf.signature_help({ border = "rounded", max_width = 80 })
+        end, "Signature Help", "i")
+
+        -- ── Diagnostics ──────────────────────────────────────────
+        map("[d", function()
+          vim.diagnostic.jump({ count = -1 })
+        end, "Prev Diagnostic")
+        map("]d", function()
+          vim.diagnostic.jump({ count = 1 })
+        end, "Next Diagnostic")
+        map("[e", function()
+          vim.diagnostic.jump({ count = -1, severity = vim.diagnostic.severity.ERROR })
+        end, "Prev Error")
+        map("]e", function()
+          vim.diagnostic.jump({ count = 1, severity = vim.diagnostic.severity.ERROR })
+        end, "Next Error")
+        map("<leader>dl", vim.diagnostic.open_float, "Line Diagnostics")
+        map("<leader>dq", vim.diagnostic.setloclist, "Diagnostics to Quickfix")
+
+        -- ── Document Highlight ───────────────────────────────────
+        if client and client:supports_method(methods.textDocument_documentHighlight) then
+          api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+            buffer = buf,
+            group = highlight_group,
+            callback = lsp.buf.document_highlight,
+          })
+          api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+            buffer = buf,
+            group = highlight_group,
+            callback = lsp.buf.clear_references,
+          })
+        end
+
+        -- ── Inlay Hints ──────────────────────────────────────────
+        if client and client:supports_method(methods.textDocument_inlayHint) then
+          map("<leader>th", function()
+            local enabled = lsp.inlay_hint.is_enabled({ bufnr = buf })
+            lsp.inlay_hint.enable(not enabled, { bufnr = buf })
+          end, "Toggle Inlay Hints")
+
+          api.nvim_create_autocmd({ "BufEnter", "InsertLeave" }, {
+            buffer = buf,
+            group = hint_group,
+            callback = function()
+              lsp.inlay_hint.enable(true, { bufnr = buf })
+            end,
+          })
+          api.nvim_create_autocmd("InsertEnter", {
+            buffer = buf,
+            group = hint_group,
+            callback = function()
+              lsp.inlay_hint.enable(false, { bufnr = buf })
+            end,
+          })
+        end
+
+        -- ── Code Lens ────────────────────────────────────────────
+        if client and client:supports_method(methods.textDocument_codeLens) then
+          lsp.codelens.enable(true, { bufnr = buf })
+          map("<leader>cl", lsp.codelens.run, "Run Code Lens")
+        end
+
+        -- ── Format on Save ───────────────────────────────────────
+        if client and client:supports_method(methods.textDocument_formatting) then
+          api.nvim_clear_autocmds({ group = format_group, buffer = buf })
+          api.nvim_create_autocmd("BufWritePre", {
+            group = format_group,
+            buffer = buf,
+            callback = function()
+              lsp.buf.format({
+                bufnr = buf,
+                filter = function(c)
+                  return c.name == "null-ls"
+                end,
+              })
+            end,
+          })
+        end
+      end,
+    })
+
+    -- ─── Capabilities ─────────────────────────────────────────────
+    local capabilities = vim.tbl_deep_extend(
+      "force",
+      lsp.protocol.make_client_capabilities(),
+      require("cmp_nvim_lsp").default_capabilities()
+    )
+    capabilities.textDocument.completion.completionItem.labelDetailsSupport = true
+    capabilities.textDocument.foldingRange = { dynamicRegistration = false, lineFoldingOnly = true }
+
+    -- ─── LSP Servers ──────────────────────────────────────────────
+    local servers = {
+
+      lua_ls = {
+        settings = {
+          Lua = {
+            runtime = { version = "LuaJIT" },
+            diagnostics = { globals = { "vim" } },
+            workspace = {
+              checkThirdParty = false,
+              library = api.nvim_get_runtime_file("", true),
+            },
+            hint = {
+              enable = true,
+              setType = true,
+              paramName = "All",
+            },
+            format = { enable = false },
+          },
+        },
+      },
+
+      pyright = {
+        settings = {
+          python = {
+            pythonPath = vim.fn.exepath("python3"),
+            analysis = {
+              typeCheckingMode = "standard",
+              diagnosticMode = "workspace",
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+              inlayHints = {
+                variableTypes = true,
+                functionReturnTypes = true,
+                callArgumentNames = true,
+                pytestParameters = true,
+              },
+            },
+          },
+        },
+      },
+
+      ts_ls = {
+        settings = {
+          typescript = {
+            format = { enable = false },
+            inlayHints = {
+              includeInlayParameterNameHints = "all",
+              includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+              includeInlayFunctionParameterTypeHints = true,
+              includeInlayVariableTypeHints = true,
+              includeInlayPropertyDeclarationTypeHints = true,
+              includeInlayFunctionLikeReturnTypeHints = true,
+              includeInlayEnumMemberValueHints = true,
+            },
+          },
+
+          javascript = {
+            format = { enable = false },
+            inlayHints = {
+              includeInlayParameterNameHints = "literals",
+              includeInlayFunctionLikeReturnTypeHints = true,
+            },
+          },
+        },
+      },
+
+      gopls = {
+        settings = {
+          gopls = {
+            gofumpt = true,
+            staticcheck = true,
+            vulncheck = "Imports",
+            usePlaceholders = false,
+            completeFunctionCalls = true,
+            matcher = "Fuzzy",
+            semanticTokens = true,
+            diagnosticsDelay = "500ms",
+
+            analyses = {
+              unusedparams = true,
+              unusedvariable = true,
+              shadow = true,
+              nilness = true,
+              useany = true,
+              appends = true,
+              assign = true,
+              atomic = true,
+              bools = true,
+              composites = true,
+              copylocks = true,
+              defers = true,
+              deprecated = true,
+              errorsas = true,
+              httpresponse = true,
+              infertypeargs = true,
+              loopclosure = true,
+              lostcancel = true,
+              printf = true,
+              slog = true,
+              sortslice = true,
+              stdversion = true,
+              stringintconv = true,
+              testinggoroutine = true,
+              timeformat = true,
+              unmarshal = true,
+              unreachable = true,
+              unusedresult = true,
+              waitgroup = true,
+            },
+
+            codelenses = {
+              generate = true,
+              regenerate_cgo = true,
+              tidy = true,
+              upgrade_dependency = true,
+              vendor = true,
+              vulncheck = true,
+              test = true,
+              gc_details = false,
+            },
+
+            hints = {
+              assignVariableTypes = true,
+              compositeLiteralFields = true,
+              compositeLiteralTypes = true,
+              constantValues = true,
+              functionTypeParameters = true,
+              parameterNames = false,
+              rangeVariableTypes = true,
+            },
+          },
+        },
+      },
+
+      html = { filetypes = { "html" } },
+      eslint = { settings = { workingDirectory = { mode = "auto" } } },
+      bashls = {
+        settings = {
+          bashIde = { globPattern = "**/*@(.sh|.bash|.zsh|.command)" },
+        },
+      },
+
+      tailwindcss = {
+        filetypes = {
+          "html",
+          "css",
+          "scss",
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact",
+          "vue",
+          "svelte",
+        },
+        init_options = { userLanguages = { eelixir = "html" } },
+      },
+
+      dockerls = {},
+      docker_compose_language_service = {},
+    }
+
+    -- ─── Install & Register ───────────────────────────────────────
+    require("mason-tool-installer").setup({ ensure_installed = vim.tbl_keys(servers) })
+
+    for name, cfg in pairs(servers) do
+      cfg.capabilities = capabilities
+      lsp.config(name, cfg)
+      lsp.enable(name)
+    end
+  end,
+}
