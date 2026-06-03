@@ -5,7 +5,6 @@ return {
   dependencies = {
     { "williamboman/mason.nvim", config = true },
     "williamboman/mason-lspconfig.nvim",
-    "WhoIsSethDaniel/mason-tool-installer.nvim",
     "hrsh7th/cmp-nvim-lsp",
     {
       "j-hui/fidget.nvim",
@@ -45,9 +44,8 @@ return {
     })
 
     -- ─── Augroups (must be defined BEFORE use) ───────────────────
-    local attach_group = api.nvim_create_augroup("LspAttach", { clear = true })
+    local attach_group = api.nvim_create_augroup("UserLspAttach", { clear = true })
     local highlight_group = api.nvim_create_augroup("LspHighlight", { clear = true })
-    local format_group = api.nvim_create_augroup("LspFormat", { clear = true })
     local hint_group = api.nvim_create_augroup("LspInlayHints", { clear = true })
 
     -- ─── On Attach ───────────────────────────────────────────────
@@ -154,23 +152,6 @@ return {
         if client and client:supports_method(methods.textDocument_codeLens) then
           lsp.codelens.enable(true, { bufnr = buf })
           map("<leader>cl", lsp.codelens.run, "Run Code Lens")
-        end
-
-        -- ── Format on Save ───────────────────────────────────────
-        if client and client:supports_method(methods.textDocument_formatting) then
-          api.nvim_clear_autocmds({ group = format_group, buffer = buf })
-          api.nvim_create_autocmd("BufWritePre", {
-            group = format_group,
-            buffer = buf,
-            callback = function()
-              lsp.buf.format({
-                bufnr = buf,
-                filter = function(c)
-                  return c.name == "null-ls"
-                end,
-              })
-            end,
-          })
         end
       end,
     })
@@ -347,7 +328,10 @@ return {
     }
 
     -- ─── Install & Register ───────────────────────────────────────
-    require("mason-tool-installer").setup({ ensure_installed = vim.tbl_keys(servers) })
+    require("mason-lspconfig").setup({
+      ensure_installed = vim.tbl_keys(servers),
+      automatic_installation = true,
+    })
 
     for name, cfg in pairs(servers) do
       cfg.capabilities = capabilities
