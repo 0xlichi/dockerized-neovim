@@ -1,4 +1,4 @@
-## Arch Linux Dockerized Setup Script
+## Arch Linux Dockerized Neovim Setup Script
 
 This is a Dockerfile designed to create a personalized and highly customized Arch Linux environment, optimized for a user experience focused on power tools, text editing, and efficient system management.
 
