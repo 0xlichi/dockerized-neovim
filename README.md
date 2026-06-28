@@ -67,6 +67,10 @@ Run the resulting container interactively to enter your new environment:
 ```bash
 docker run -it --name my-custom-shell custom-arch-env /bin/bash
 ```
+**3. A pre build image:**
+```bash
+docker run -it --name custom-name 0xlichi/neovim
+```
 
 You will be dropped directly into the home directory of the newly created user (`apple`), ready to start using your powerful toolset!
 ---
