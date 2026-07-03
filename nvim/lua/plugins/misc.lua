@@ -29,7 +29,7 @@ return {
           highlight_grey = "LineNr",
         },
       })
-
+      
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
     end,
   },
@@ -68,11 +68,11 @@ return {
       require("colorizer").setup({
         filetypes = { "*" },
         user_default_options = {
-          RGB = true, -- #RGB
-          RRGGBB = true, -- #RRGGBB
-          names = false, -- "Blue" etc — disabled: too noisy in non-CSS files
+          RGB = true,      -- #RGB
+          RRGGBB = true,   -- #RRGGBB
+          names = false,   -- "Blue" etc — disabled: too noisy in non-CSS files
           RRGGBBAA = true, -- #RRGGBBAA
-          css = true, -- all CSS features
+          css = true,      -- all CSS features
           tailwind = true, -- tailwind color classes
           mode = "background",
         },

@@ -49,7 +49,6 @@ return {
     -- ─── Augroups (must be defined BEFORE use) ───────────────────
     local attach_group = api.nvim_create_augroup("UserLspAttach", { clear = true })
     local highlight_group = api.nvim_create_augroup("LspHighlight", { clear = true })
-    local hint_group = api.nvim_create_augroup("LspInlayHints", { clear = true })
 
     -- ─── On Attach ───────────────────────────────────────────────
     api.nvim_create_autocmd("LspAttach", {
@@ -120,33 +119,22 @@ return {
           })
         end
 
-        -- ── Inlay Hints ──────────────────────────────────────────
+        -- ── Inlay Hints (v0.11.6 compatible) ─────────────────────
         if client and client:supports_method(methods.textDocument_inlayHint) then
           map("<leader>th", function()
-            local enabled = lsp.inlay_hint.is_enabled({ bufnr = buf })
-            lsp.inlay_hint.enable(not enabled, { bufnr = buf })
+            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = buf }), { bufnr = buf })
           end, "Toggle Inlay Hints")
-
-          api.nvim_create_autocmd({ "BufEnter", "InsertLeave" }, {
-            buffer = buf,
-            group = hint_group,
-            callback = function()
-              lsp.inlay_hint.enable(true, { bufnr = buf })
-            end,
-          })
-          api.nvim_create_autocmd("InsertEnter", {
-            buffer = buf,
-            group = hint_group,
-            callback = function()
-              lsp.inlay_hint.enable(false, { bufnr = buf })
-            end,
-          })
         end
 
         -- ── Code Lens ────────────────────────────────────────────
         if client and client:supports_method(methods.textDocument_codeLens) then
-          lsp.codelens.enable(true, { bufnr = buf })
           map("<leader>cl", lsp.codelens.run, "Run Code Lens")
+          map("<leader>cl", vim.lsp.codelens.run, "Run Code Lens")
+
+          api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
+            buffer = buf,
+            callback = vim.lsp.codelens.refresh,
+          })
         end
       end,
     })
@@ -182,35 +170,35 @@ return {
         },
       },
 
-      -- basedpyright = {
-      --   settings = {
-      --     python = {
-      --       pythonPath = vim.fn.exepath("python3"),
-      --       analysis = {
-      --         typeCheckingMode = "standard",
-      --         diagnosticMode = "workspace",
-      --         autoSearchPaths = true,
-      --         useLibraryCodeForTypes = true,
-      --         inlayHints = {
-      --           variableTypes = true,
-      --           functionReturnTypes = true,
-      --           callArgumentNames = true,
-      --           pytestParameters = true,
-      --         },
-      --       },
-      --     },
-      --   },
-      -- },
-      --
-      -- ruff = {
-      --   on_attach = function(client)
-      --     client.server_capabilities.hoverProvider = false
-      --     client.server_capabilities.documentFormattingProvider = false
-      --     client.server_capabilities.documentRangeFormattingProvider = false
-      --   end,
-      -- },
-      --
-      -- -- ── C / C++ ─────────────────────────────────────────────────
+      basedpyright = {
+        settings = {
+          python = {
+            pythonPath = vim.fn.exepath("python3"),
+            analysis = {
+              typeCheckingMode = "standard",
+              diagnosticMode = "workspace",
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+              inlayHints = {
+                variableTypes = true,
+                functionReturnTypes = true,
+                callArgumentNames = true,
+                pytestParameters = true,
+              },
+            },
+          },
+        },
+      },
+
+      ruff = {
+        on_attach = function(client)
+          client.server_capabilities.hoverProvider = false
+          client.server_capabilities.documentFormattingProvider = false
+          client.server_capabilities.documentRangeFormattingProvider = false
+        end,
+      },
+
+      -- ── C / C++ ─────────────────────────────────────────────────
       -- clangd = {
       --   cmd = {
       --     "clangd",
@@ -222,165 +210,163 @@ return {
       --     "--fallback-style=llvm",
       --   },
       --   filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
-      --   -- clangd needs a compile_commands.json (or compile_flags.txt) to fully
-      --   -- understand your project; without one it still works but falls back
-      --   -- to single-file heuristics. CMake: `set(CMAKE_EXPORT_COMPILE_COMMANDS
-      --   -- ON)`; Makefiles: generate one with `bear -- make` or `compiledb make`.
       -- },
-      --
-      -- -- ── Rust ────────────────────────────────────────────────────
-      -- rust_analyzer = {
-      --   settings = {
-      --     ["rust-analyzer"] = {
-      --       cargo = {
-      --         allFeatures = true,
-      --         buildScripts = { enable = true },
-      --       },
-      --       checkOnSave = true,
-      --       check = { command = "clippy" },
-      --       procMacro = { enable = true },
-      --       inlayHints = {
-      --         bindingModeHints = { enable = false },
-      --         chainingHints = { enable = true },
-      --         closureReturnTypeHints = { enable = "always" },
-      --         lifetimeElisionHints = { enable = "skip_trivial" },
-      --         reborrowHints = { enable = "mutable" },
-      --         typeHints = { enable = true },
-      --       },
-      --     },
-      --   },
-      -- },
-      --
-      -- -- ── .NET / C# ───────────────────────────────────────────────
-      -- omnisharp = {
-      --   cmd = { "omnisharp" },
-      --   enable_roslyn_analyzers = true,
-      --   enable_import_completion = true,
-      --   organize_imports_on_format = true,
-      --   settings = {
-      --     FormattingOptions = { EnableEditorConfigSupport = true },
-      --     RoslynExtensionsOptions = { enableAnalyzersSupport = true },
-      --   },
-      -- },
-      --
-      -- ts_ls = {
-      --   settings = {
-      --     typescript = {
-      --       format = { enable = false },
-      --       inlayHints = {
-      --         includeInlayParameterNameHints = "all",
-      --         includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-      --         includeInlayFunctionParameterTypeHints = true,
-      --         includeInlayVariableTypeHints = true,
-      --         includeInlayPropertyDeclarationTypeHints = true,
-      --         includeInlayFunctionLikeReturnTypeHints = true,
-      --         includeInlayEnumMemberValueHints = true,
-      --       },
-      --     },
-      --
-      --     javascript = {
-      --       format = { enable = false },
-      --       inlayHints = {
-      --         includeInlayParameterNameHints = "literals",
-      --         includeInlayFunctionLikeReturnTypeHints = true,
-      --       },
-      --     },
-      --   },
-      -- },
-      --
-      -- gopls = {
-      --   settings = {
-      --     gopls = {
-      --       gofumpt = true,
-      --       staticcheck = true,
-      --       vulncheck = "Imports",
-      --       usePlaceholders = false,
-      --       completeFunctionCalls = true,
-      --       matcher = "Fuzzy",
-      --       semanticTokens = true,
-      --       diagnosticsDelay = "500ms",
-      --
-      --       analyses = {
-      --         unusedparams = true,
-      --         unusedvariable = true,
-      --         shadow = true,
-      --         nilness = true,
-      --         useany = true,
-      --         appends = true,
-      --         assign = true,
-      --         atomic = true,
-      --         bools = true,
-      --         composites = true,
-      --         copylocks = true,
-      --         defers = true,
-      --         deprecated = true,
-      --         errorsas = true,
-      --         httpresponse = true,
-      --         infertypeargs = true,
-      --         loopclosure = true,
-      --         lostcancel = true,
-      --         printf = true,
-      --         slog = true,
-      --         sortslice = true,
-      --         stdversion = true,
-      --         stringintconv = true,
-      --         testinggoroutine = true,
-      --         timeformat = true,
-      --         unmarshal = true,
-      --         unreachable = true,
-      --         unusedresult = true,
-      --         waitgroup = true,
-      --       },
-      --
-      --       codelenses = {
-      --         generate = true,
-      --         regenerate_cgo = true,
-      --         tidy = true,
-      --         upgrade_dependency = true,
-      --         vendor = true,
-      --         vulncheck = true,
-      --         test = true,
-      --         gc_details = false,
-      --       },
-      --
-      --       hints = {
-      --         assignVariableTypes = true,
-      --         compositeLiteralFields = true,
-      --         compositeLiteralTypes = true,
-      --         constantValues = true,
-      --         functionTypeParameters = true,
-      --         parameterNames = false,
-      --         rangeVariableTypes = true,
-      --       },
-      --     },
-      --   },
-      -- },
-      --
-      -- html = { filetypes = { "html" } },
-      -- eslint = { settings = { workingDirectory = { mode = "auto" } } },
-      -- bashls = {
-      --   settings = {
-      --     bashIde = { globPattern = "**/*@(.sh|.bash|.zsh|.command)" },
-      --   },
-      -- },
-      --
-      -- tailwindcss = {
-      --   filetypes = {
-      --     "html",
-      --     "css",
-      --     "scss",
-      --     "javascript",
-      --     "javascriptreact",
-      --     "typescript",
-      --     "typescriptreact",
-      --     "vue",
-      --     "svelte",
-      --   },
-      --   init_options = { userLanguages = { eelixir = "html" } },
-      -- },
-      --
-      -- dockerls = {},
-      -- docker_compose_language_service = {},
+
+      -- ── Rust ────────────────────────────────────────────────────
+      rust_analyzer = {
+        settings = {
+          ["rust-analyzer"] = {
+            cargo = {
+              allFeatures = true,
+              buildScripts = { enable = true },
+            },
+            checkOnSave = {
+              command = "clippy",
+              allTargets = true,
+            },
+            procMacro = { enable = true },
+            inlayHints = {
+              bindingModeHints = { enable = false },
+              chainingHints = { enable = true },
+              closureReturnTypeHints = { enable = "always" },
+              lifetimeElisionHints = { enable = "skip_trivial" },
+              reborrowHints = { enable = "mutable" },
+              typeHints = { enable = true },
+            },
+          },
+        },
+      },
+
+      -- ── .NET / C# ───────────────────────────────────────────────
+      omnisharp = {
+        cmd = { "omnisharp" },
+        enable_roslyn_analyzers = true,
+        enable_import_completion = true,
+        organize_imports_on_format = true,
+        settings = {
+          FormattingOptions = { EnableEditorConfigSupport = true },
+          RoslynExtensionsOptions = { enableAnalyzersSupport = true },
+        },
+      },
+
+      ts_ls = {
+        settings = {
+          typescript = {
+            format = { enable = false },
+            inlayHints = {
+              includeInlayParameterNameHints = "all",
+              includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+              includeInlayFunctionParameterTypeHints = true,
+              includeInlayVariableTypeHints = true,
+              includeInlayPropertyDeclarationTypeHints = true,
+              includeInlayFunctionLikeReturnTypeHints = true,
+              includeInlayEnumMemberValueHints = true,
+            },
+          },
+
+          javascript = {
+            format = { enable = false },
+            inlayHints = {
+              includeInlayParameterNameHints = "literals",
+              includeInlayFunctionLikeReturnTypeHints = true,
+            },
+          },
+        },
+      },
+
+      gopls = {
+        settings = {
+          gopls = {
+            gofumpt = true,
+            staticcheck = true,
+            vulncheck = "Imports",
+            usePlaceholders = false,
+            completeFunctionCalls = true,
+            matcher = "Fuzzy",
+            semanticTokens = true,
+            diagnosticsDelay = "500ms",
+
+            analyses = {
+              unusedparams = true,
+              unusedvariable = true,
+              shadow = true,
+              nilness = true,
+              useany = true,
+              appends = true,
+              assign = true,
+              atomic = true,
+              bools = true,
+              composites = true,
+              copylocks = true,
+              defers = true,
+              deprecated = true,
+              errorsas = true,
+              httpresponse = true,
+              infertypeargs = true,
+              loopclosure = true,
+              lostcancel = true,
+              printf = true,
+              slog = true,
+              sortslice = true,
+              stdversion = true,
+              stringintconv = true,
+              testinggoroutine = true,
+              timeformat = true,
+              unmarshal = true,
+              unreachable = true,
+              unusedresult = true,
+              waitgroup = true,
+            },
+
+            codelenses = {
+              generate = true,
+              regenerate_cgo = true,
+              tidy = true,
+              upgrade_dependency = true,
+              vendor = true,
+              vulncheck = true,
+              test = true,
+              gc_details = false,
+            },
+
+            hints = {
+              assignVariableTypes = true,
+              compositeLiteralFields = true,
+              compositeLiteralTypes = true,
+              constantValues = true,
+              functionTypeParameters = true,
+              parameterNames = false,
+              rangeVariableTypes = true,
+            },
+          },
+        },
+      },
+
+      html = { filetypes = { "html" } },
+      eslint = { settings = { workingDirectory = { mode = "auto" } } },
+      bashls = {
+        settings = {
+          bashIde = { globPattern = "**/*@(.sh|.bash|.zsh|.command)" },
+        },
+      },
+
+      tailwindcss = {
+        filetypes = {
+          "html",
+          "css",
+          "scss",
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact",
+          "vue",
+          "svelte",
+        },
+        init_options = { userLanguages = { eelixir = "html" } },
+      },
+
+      dockerls = {},
+      docker_compose_language_service = {},
     }
 
     -- ─── Install & Register ───────────────────────────────────────
