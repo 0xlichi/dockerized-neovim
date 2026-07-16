@@ -8,6 +8,8 @@ alias ll='ls -Alh --color=auto --group-directories-first'
 alias grep='grep --color=auto'
 PS1='[\u@\h \W]\$ '
 
+export PATH="/usr/local/bin:$PATH"
+
 eval "$(starship init bash)"
 export STARSHIP_CONFIG=~/.config/starship/starship.toml
 export STARSHIP_CACHE=~/.starship/cache
