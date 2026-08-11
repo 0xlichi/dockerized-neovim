@@ -4,20 +4,20 @@ This is a Dockerfile designed to create a personalized and highly customized Arc
 
 Before using set a strong password for sudo users
 
-###  Features Included
+### Features Included
 
 This image sets up a base environment with a curated set of essential and powerful tools:
 
-* **Powerful Text Editors & Utilities:** `neovim`, `vim`, `lolcat`, `bat`, `less`, `fzf`, `diffutils`.
-* **Git & Version Control:** `git`, `lazygit`.
-* **System & Build Tools:** `make`, `cmake`, `gcc`, `wget`, `make`, `pacman`.
-* **Shell & Navigation Enhancements:** `starship`, `zoxide`, `fzf`, `yazi`.
-* **System Utilities:** `ls`, `tree`, `locate`, `sudo`, `trash-cli`.
-* **Programming & Scripting:** `nodejs`, `npm`, `lua`, `luajit`, `luarocks`.
-* **Networking & Access:** `curl`, `openssh`.
-* **Essential Tooling:** `which`, `man`.
+- **Powerful Text Editors & Utilities:** `neovim`, `vim`, `lolcat`, `bat`, `less`, `fzf`, `diffutils`.
+- **Git & Version Control:** `git`, `lazygit`.
+- **System & Build Tools:** `make`, `cmake`, `gcc`, `wget`, `make`, `pacman`.
+- **Shell & Navigation Enhancements:** `starship`, `zoxide`, `fzf`, `yazi`.
+- **System Utilities:** `ls`, `tree`, `locate`, `sudo`, `trash-cli`.
+- **Programming & Scripting:** `nodejs`, `npm`, `lua`, `luajit`, `luarocks`.
+- **Networking & Access:** `curl`, `openssh`.
+- **Essential Tooling:** `which`, `man`.
 
-###  Build Details
+### Build Details
 
 The Dockerfile is built upon the **Arch Linux** base.
 
@@ -25,11 +25,11 @@ The Dockerfile is built upon the **Arch Linux** base.
 
 The setup uses build arguments to easily customize the default username and user/group IDs:
 
-| Argument | Default Value | Description |
-| :--- | :--- | :--- |
-| `USERNAME` | `apple` | The desired primary username. |
-| `UID` | `1000` | The numerical User ID. |
-| `GID` | `1000` | The numerical Group ID. |
+| Argument   | Default Value | Description                   |
+| :--------- | :------------ | :---------------------------- |
+| `USERNAME` | `apple`       | The desired primary username. |
+| `UID`      | `1000`        | The numerical User ID.        |
+| `GID`      | `1000`        | The numerical Group ID.       |
 
 **Installation Process:**
 
@@ -37,18 +37,18 @@ The setup uses build arguments to easily customize the default username and user
 2. **Package Installation:** Installs all specified packages.
 3. **Cleanup:** Runs `pacman -Scc --noconfirm` to clean up the package cache, keeping the image size manageable.
 
-###  File Structure & Configuration
+### File Structure & Configuration
 
 The Dockerfile copies specific configuration files and fonts into the user's home directory to customize the experience:
 
-* **Configuration Overrides:**
-    * `.fonts/` (Custom fonts)
-    * `yazi/` (Yazi configuration)
-    * `starship/` (Starship prompt configuration)
-    * `.bashrc` (Custom shell configuration)
-    * `nvim/` (Neovim configuration)
+- **Configuration Overrides:**
+  - `.fonts/` (Custom fonts)
+  - `yazi/` (Yazi configuration)
+  - `starship/` (Starship prompt configuration)
+  - `.bashrc` (Custom shell configuration)
+  - `nvim/` (Neovim configuration)
 
-###  How to Use This Image
+### How to Use This Image
 
 This Dockerfile is intended to be used to build a custom environment within a Docker container.
 
@@ -67,9 +67,27 @@ Run the resulting container interactively to enter your new environment:
 ```bash
 docker run -it --name my-custom-shell custom-arch-env /bin/bash
 ```
+
 **3. A pre build image:**
+
 ```bash
 docker run -it --name custom-name 0xlichi/neovim
+```
+
+**4. Use it as a Docker volume for persistent storage between the host and the container:**
+
+```bash
+mkdir dir-name
+cd dir-name
+```
+
+Inside the directory, paste the command below. Note that you can change the container name and workspace name.
+
+```bash
+docker run -it \
+  --name custom-name \
+  -v $(pwd):/workspace \
+  0xlichi/neovim
 ```
 
 You will be dropped directly into the home directory of the newly created user (`apple`), ready to start using your powerful toolset!
