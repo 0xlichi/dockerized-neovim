@@ -63,7 +63,7 @@ vim.keymap.set("n", "<leader>bn", "<cmd>enew<CR>", opts)
 -- Insert mode escape
 vim.keymap.set("i", "<Esc>", "<Esc>:w<CR>", opts)
 vim.keymap.set("i", "jj", "<Esc>:wqa<CR>", opts)
-vim.keymap.set("i", "kk", "<Esc>:wa<CR>", opts)
+vim.keymap.set("i", "kk", "<Esc>:w<CR>", opts)
 
 -- Visual mode
 vim.keymap.set("v", "<", "<gv", opts)
