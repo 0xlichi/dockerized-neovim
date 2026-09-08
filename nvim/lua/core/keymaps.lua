@@ -62,15 +62,15 @@ vim.keymap.set("n", "<leader>bn", "<cmd>enew<CR>", opts)
 
 -- Insert mode escape
 vim.keymap.set("i", "<Esc>", "<Esc>:w<CR>", opts)
-vim.keymap.set("i", "jj", "<Esc>:w<CR>", opts)
-vim.keymap.set("i", "kk", "<Esc>:wq<CR>", opts)
+vim.keymap.set("i", "jj", "<Esc>:wqa<CR>", opts)
+vim.keymap.set("i", "kk", "<Esc>:wa<CR>", opts)
 
 -- Visual mode
 vim.keymap.set("v", "<", "<gv", opts)
 vim.keymap.set("v", ">", ">gv", opts)
 vim.keymap.set("v", "<A-j>", ":m .+1<CR>==", opts)
 vim.keymap.set("v", "<A-k>", ":m .-2<CR>==", opts)
-vim.keymap.set("v", "p", '"_dP', opts)
+vim.keymap.set("v", "p", '"_dp', opts)
 
 -- Clipboard
 vim.keymap.set({ "n", "v" }, "<leader>y", [["+y]])
